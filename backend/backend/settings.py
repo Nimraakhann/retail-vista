@@ -179,6 +179,10 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "https://retailvista.netlify.app/",
+]
+
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
