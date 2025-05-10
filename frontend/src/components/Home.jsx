@@ -1,5 +1,6 @@
 import gsap from 'gsap';
 import { useEffect, useRef } from 'react';
+import shopGif from './assets/shop.gif';
 
 function Home() {
     // Create refs for elements we want to animate
@@ -132,7 +133,7 @@ function Home() {
             <div className="w-full md:w-1/2 flex justify-center mt-24 md:mt-0">
                 <img 
                     ref={gifRef}
-                    src="./src/assets/shop.gif" 
+                    src={shopGif}
                     alt="Retail Animation" 
                     className="w-full max-w-md md:max-w-xl rounded-3xl"
                 />
