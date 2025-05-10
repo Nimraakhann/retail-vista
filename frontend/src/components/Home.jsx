@@ -1,6 +1,6 @@
 import gsap from 'gsap';
 import { useEffect, useRef } from 'react';
-import shopGif from './assets/shop.gif';
+import shopGif from '../assets/shop.gif';
 
 function Home() {
     // Create refs for elements we want to animate
