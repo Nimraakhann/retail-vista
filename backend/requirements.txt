@@ -6,3 +6,10 @@ whitenoise>=6.5.0
 gunicorn>=21.2.0
 python-dotenv>=1.0.0
 djangorestframework-simplejwt
+numpy
+opencv-python
+torch
+ultralytics
+tensorflow
+cvlib
+requests
