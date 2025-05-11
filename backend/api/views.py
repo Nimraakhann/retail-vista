@@ -68,6 +68,8 @@ def connect_camera(request):
             'message': 'Missing video_path'
         }, status=400)
     
+    video_path = video_path.strip()
+    
     try:
         with detector_lock:
             # Generate a unique identifier for this camera
@@ -129,6 +131,8 @@ def connect_age_gender_camera(request):
             'status': 'error', 
             'message': 'Missing camera_id or video_path'
         })
+    
+    video_path = video_path.strip()
     
     try:
         with age_gender_detector_lock:
@@ -227,7 +231,7 @@ def get_cameras(request):
                 if camera_id not in detector_instances:
                     print(f"Initializing detector for camera {camera_id}")
                     detector = ShopliftDetector()
-                    if detector.start_detection(camera.video_path, camera_id, token):
+                    if detector.start_detection(camera.video_path.strip(), camera_id, token):
                         detector_instances[camera_id] = detector
                         print(f"Successfully started detection for camera {camera_id}")
                     else:
@@ -241,7 +245,7 @@ def get_cameras(request):
             
             camera_list.append({
                 'id': camera_id,
-                'path': camera.video_path,
+                'path': camera.video_path.strip(),
                 'name': camera.name or f"Camera {camera.id}"
             })
         
@@ -275,7 +279,7 @@ def get_age_gender_cameras(request):
             camera_list.append({
                 'camera_id': camera.camera_id,
                 'name': camera.name,  # Add this
-                'video_path': camera.video_path
+                'video_path': camera.video_path.strip()
             })
             
             # Start detection if not already running
@@ -288,7 +292,7 @@ def get_age_gender_cameras(request):
                 else:
                     auth_token = None
                     
-                if detector.start_detection(camera.video_path, camera_id=camera.camera_id, auth_token=auth_token):
+                if detector.start_detection(camera.video_path.strip(), camera_id=camera.camera_id, auth_token=auth_token):
                     age_gender_detector_instances[camera.camera_id] = detector
 
         return JsonResponse({
@@ -1290,6 +1294,11 @@ def connect_people_counter(request):
     entry_points = request.data.get('entry_points')
     exit_points = request.data.get('exit_points')
     
+    if not video_path:
+        return Response({'status': 'error', 'message': 'Missing video_path'})
+    
+    video_path = video_path.strip()
+    
     try:
         camera = Camera.objects.create(
             user=request.user,
@@ -1984,6 +1993,8 @@ def get_first_frame(request):
     if not video_path:
         return Response({'status': 'error', 'message': 'No video path provided'})
         
+    video_path = video_path.strip()
+    
     try:
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
