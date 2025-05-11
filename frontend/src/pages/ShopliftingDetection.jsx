@@ -119,6 +119,7 @@ function ShopliftingDetection() {
   };
 
   const handleDeleteCamera = async (cameraId) => {
+    console.log('handleDeleteCamera called with', cameraId);
     if (isDeleting[cameraId]) return; // Prevent multiple delete attempts
     
     const headers = getAuthHeaders();
@@ -573,7 +574,7 @@ function ShopliftingDetection() {
                   <h3 className="text-white">{camera.name || `Camera ${camera.id}`}</h3>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => handleDeleteCamera(camera.id)}
+                      onClick={() => { console.log('Delete clicked', camera.id); handleDeleteCamera(camera.id); }}
                       className="text-gray-400 hover:text-white"
                     >
                       ×
