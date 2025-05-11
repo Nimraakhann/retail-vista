@@ -12,7 +12,7 @@ from threading import Lock
 import os
 import time
 import requests
-from backend.config import API_ENDPOINTS
+from config import API_ENDPOINTS
 
 class AgeGenderDetector:
     def __init__(self):
