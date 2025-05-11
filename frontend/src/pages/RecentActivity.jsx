@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../components/DashboardHeader';
 import axios from 'axios';
 import { config } from '../config';
+import Pagination from '../components/Pagination';
 
 const API_BASE_URL = config.API_BASE_URL;
 
@@ -14,6 +15,8 @@ function RecentActivity() {
   const [showConfirmReviewModal, setShowConfirmReviewModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest'
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
 
   const getAuthHeaders = () => {
@@ -88,6 +91,20 @@ function RecentActivity() {
   useEffect(() => {
     applyFilters(alerts);
   }, [sortOrder]);
+
+  // Calculate paginated alerts
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentAlerts = filteredAlerts.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handleItemsPerPageChange = (newSize) => {
+    setItemsPerPage(newSize);
+    setCurrentPage(1);
+  };
 
   const handlePlayVideo = (alert) => {
     setSelectedAlert(alert);
@@ -182,43 +199,36 @@ function RecentActivity() {
     }
   };
 
+  // Helper to ensure video_clip is an absolute URL
+  const getVideoUrl = (video_clip) => {
+    if (!video_clip) return null;
+    if (/^https?:\/\//i.test(video_clip)) return video_clip;
+    // If relative, prepend backend base URL
+    return `${API_BASE_URL}${video_clip.startsWith('/') ? '' : '/'}${video_clip}`;
+  };
+
   const handleDownload = (alert) => {
-    if (!alert.video_clip) return;
-    
+    const videoUrl = getVideoUrl(alert.video_clip);
+    if (!videoUrl) return;
     try {
-      // Create a new anchor element
       const link = document.createElement('a');
-      
-      // Set proper attributes for download
-      link.href = alert.video_clip;
-      
-      // Add timestamp to avoid browser caching issues
+      link.href = videoUrl;
       if (link.href.indexOf('?') === -1) {
         link.href += `?t=${Date.now()}`;
       } else {
         link.href += `&t=${Date.now()}`;
       }
-      
-      // Set filename for the download
       link.download = `shoplifting-${alert.camera_name}-${new Date(alert.timestamp).toISOString().replace(/:/g, '-')}.mp4`;
-      link.target = '_blank'; // Open in new tab as fallback
-      
-      // Append to document
+      link.target = '_blank';
       document.body.appendChild(link);
-      
-      // Trigger click event
       link.click();
-      
-      // Clean up
       setTimeout(() => {
         document.body.removeChild(link);
       }, 100);
-      
       console.log("Download initiated for video:", link.href);
     } catch (error) {
       console.error("Error initiating download:", error);
-      // Fallback - open in new tab
-      window.open(alert.video_clip, '_blank');
+      window.open(videoUrl, '_blank');
     }
   };
 
@@ -287,8 +297,9 @@ function RecentActivity() {
             <p className="text-gray-400 text-lg">No suspicious activities found.</p>
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAlerts.map(alert => (
+            {currentAlerts.map(alert => (
               <div 
                 key={alert.id} 
                 className="bg-zinc-900 rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10"
@@ -343,6 +354,16 @@ function RecentActivity() {
               </div>
             ))}
           </div>
+          <div className="[&_select]:bg-purple-700 [&_select]:text-white [&_option]:bg-purple-700 mt-6">
+            <Pagination
+              totalItems={filteredAlerts.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          </div>
+          </>
         )}
       </div>
       
@@ -366,25 +387,23 @@ function RecentActivity() {
             </div>
             
             <div className="aspect-video bg-black">
-              {selectedAlert.video_clip ? (
+              {selectedAlert.video_clip &&
+                /^https?:\/\/.+\.(mp4|webm)(\?.*)?$/i.test(getVideoUrl(selectedAlert.video_clip)) ? (
                 <video 
                   className="w-full h-full object-contain" 
-                  src={`${selectedAlert.video_clip}?t=${Date.now()}`} 
+                  src={getVideoUrl(selectedAlert.video_clip)}
                   controls 
                   autoPlay
                   loop
                   playsInline
                   onError={(e) => {
                     console.error("Video error:", e);
-                    // Try to reload the video if it fails
-                    const video = e.target;
-                    if (video.src) {
-                      const currentSrc = video.src;
-                      video.src = '';
-                      setTimeout(() => {
-                        video.src = currentSrc + '&retry=true';
-                      }, 1000);
-                    }
+                    e.target.poster = selectedAlert.thumbnail || '/placeholder.jpg';
+                    e.target.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = 'w-full h-full flex items-center justify-center text-gray-400';
+                    fallback.innerHTML = `<div class='text-center'><p class='mb-2'>Unable to play video</p><p class='text-sm'>You can try downloading the video instead.</p></div>`;
+                    e.target.parentNode.appendChild(fallback);
                   }}
                 />
               ) : (

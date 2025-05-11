@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { config } from '../config';
-import Pagination from './Pagination';
 
 // Global variable to track if any sound is playing
 let isSoundPlaying = false;
@@ -21,9 +20,6 @@ function ShopliftingAlert() {
   const [lastAlertId, setLastAlertId] = useState(null);
   const [lastAlertTime, setLastAlertTime] = useState(null);
   const [isPollingPaused, setIsPollingPaused] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const processedAlerts = useRef(new Set());
   const audioRef = useRef(null);
   const navigate = useNavigate();
@@ -647,41 +643,6 @@ function ShopliftingAlert() {
     }, 300);
   };
 
-  const fetchAlerts = async (page = 1) => {
-    try {
-      setIsLoading(true);
-      const headers = getAuthHeaders();
-      if (!headers) return;
-
-      const response = await axios.get(
-        `${API_BASE_URL}/api/get-shoplifting-alerts/?page=${page}&page_size=10`,
-        headers
-      );
-
-      if (response.data.status === 'success') {
-        setAlertData(response.data.alerts);
-        setTotalPages(response.data.pagination.total_pages);
-        setCurrentPage(page);
-      }
-    } catch (error) {
-      console.error('Error fetching alerts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      fetchAlerts(newPage);
-    }
-  };
-
-  const handleItemsPerPageChange = (newSize) => {
-    setItemsPerPage(newSize);
-    setCurrentPage(1);
-    fetchAlerts(1);
-  };
-
   // Always render the container even if no visible alert
   if (!isVisible || !alertData) {
     return <div className="hidden" />;
@@ -729,11 +690,6 @@ function ShopliftingAlert() {
                   e.target.src = '/placeholder-thumbnail.jpg';
                 }}
               />
-              {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                </div>
-              )}
             </div>
           ) : (
             <div className="aspect-video mb-4 bg-gray-800 rounded flex items-center justify-center">
@@ -754,16 +710,6 @@ function ShopliftingAlert() {
             >
               View Evidence
             </button>
-          </div>
-
-          <div className="[&_select]:bg-purple-700 [&_select]:text-white [&_option]:bg-purple-700">
-            <Pagination
-              totalItems={totalPages * 10}
-              itemsPerPage={10}
-              currentPage={currentPage}
-              onPageChange={handlePageChange}
-              onItemsPerPageChange={handleItemsPerPageChange}
-            />
           </div>
         </div>
       </div>
