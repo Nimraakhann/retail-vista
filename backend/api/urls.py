@@ -91,4 +91,5 @@ urlpatterns = [
     # Testing endpoints
     path('set-test-mode/<str:camera_id>/', set_test_mode, name='set_test_mode'),
     path('force-trigger-alert/<str:camera_id>/', force_trigger_alert, name='force_trigger_alert'),
+    path('age-gender-detect/', views.age_gender_detect, name='age_gender_detect'),
 ]
