@@ -15,7 +15,7 @@ import {
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { config } from '../config';
-import WebcamCapture from './WebcamCapture'; // Adjust path as needed
+import WebcamCapture from '../components/WebcamCapture';
 
 // Register ChartJS components
 ChartJS.register(
