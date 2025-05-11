@@ -432,16 +432,27 @@ function AgeGenderDetection() {
     }
   };
 
+  useEffect(() => {
+    const intervals = {};
+    cameras.forEach(camera => {
+      if (!deletingCameraIds.includes(camera.camera_id)) {
+        intervals[camera.camera_id] = setInterval(() => pollFrames(camera.camera_id), 50);
+      }
+    });
+    return () => {
+      Object.values(intervals).forEach(clearInterval);
+    };
+  }, [cameras, deletingCameraIds]);
+
   const pollFrames = async (cameraId) => {
+    if (deletingCameraIds.includes(cameraId)) return;
     const headers = getAuthHeaders(); 
     if (!headers) return;
-  
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/get-age-gender-frame/${cameraId}/`,
         headers
       );
-      
       if (response.data.status === 'success' && response.data.frame) {
         const frameElement = document.getElementById(`frame-${cameraId}`);
         if (frameElement) {
@@ -449,37 +460,13 @@ function AgeGenderDetection() {
         }
       }
     } catch (error) {
+      if (error.response?.status === 404) {
+        setCameras(prev => prev.filter(cam => cam.camera_id !== cameraId));
+        return;
+      }
       console.error(`Error getting frame for camera ${cameraId}:`, error);
     }
   };
-  
-  // Use a more reasonable polling frequency
-  useEffect(() => {
-    const intervals = {};
-  
-    cameras.forEach(camera => {
-      if (camera?.camera_id) {
-        intervals[camera.camera_id] = setInterval(() => pollFrames(camera.camera_id), 50); // 20fps
-      }
-    });
-  
-    return () => {
-      Object.values(intervals).forEach(clearInterval);
-    };
-  }, [cameras]);
-
-  useEffect(() => {
-    // Cleanup function to run when component unmounts
-    return () => {
-      // Clear all intervals
-      cameras.forEach(camera => {
-        if (camera?.id) {
-          clearInterval(window.pollInterval?.[camera.id]);
-          delete window.pollInterval?.[camera.id];
-        }
-      });
-    };
-  }, []);
 
   useEffect(() => {
     loadCameras();

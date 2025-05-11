@@ -158,9 +158,9 @@ function ShopliftingDetection() {
   };
 
   const pollFrames = async (cameraId) => {
+    if (deletingCameraIds.includes(cameraId)) return;
     const headers = getAuthHeaders();
     if (!headers) return;
-
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/get-frame/${cameraId}/`, 
@@ -174,6 +174,11 @@ function ShopliftingDetection() {
         }
       }
     } catch (error) {
+      if (error.response?.status === 404) {
+        // Camera not found, stop polling for this camera
+        setCameras(prev => prev.filter(cam => cam.id !== cameraId));
+        return;
+      }
       if (error.response?.status === 401) {
         localStorage.removeItem('accessToken');
         navigate('/login');
@@ -202,17 +207,17 @@ function ShopliftingDetection() {
   useEffect(() => {
     const intervals = {};
     const stuckCheckerIntervals = {};
-    
     cameras.forEach(camera => {
-      intervals[camera.id] = setInterval(() => pollFrames(camera.id), 100); // Slightly slower polling rate
-      stuckCheckerIntervals[camera.id] = setInterval(() => checkStuckFrames(camera.id), 5000); // Check for stuck frames every 5 seconds
+      if (!deletingCameraIds.includes(camera.id)) {
+        intervals[camera.id] = setInterval(() => pollFrames(camera.id), 100);
+        stuckCheckerIntervals[camera.id] = setInterval(() => checkStuckFrames(camera.id), 5000);
+      }
     });
-    
     return () => {
       Object.values(intervals).forEach(clearInterval);
       Object.values(stuckCheckerIntervals).forEach(clearInterval);
     };
-  }, [cameras]);
+  }, [cameras, deletingCameraIds]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

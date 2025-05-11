@@ -429,9 +429,9 @@ function PeopleCounter() {
   };
 
   const pollFrames = async (cameraId) => {
+    if (deletingCameraIds.includes(cameraId)) return;
     const headers = getAuthHeaders();
     if (!headers) return;
-
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/get-people-counter-frame/${cameraId}/`,
@@ -444,6 +444,10 @@ function PeopleCounter() {
         }
       }
     } catch (error) {
+      if (error.response?.status === 404) {
+        setCameras(prev => prev.filter(cam => cam.id !== cameraId));
+        return;
+      }
       console.error(`Error getting frame for camera ${cameraId}:`, error);
     }
   };
@@ -567,15 +571,15 @@ function PeopleCounter() {
 
   useEffect(() => {
     const intervals = {};
-    
     cameras.forEach(camera => {
-      intervals[camera.id] = setInterval(() => pollFrames(camera.id), 50);
+      if (!deletingCameraIds.includes(camera.id)) {
+        intervals[camera.id] = setInterval(() => pollFrames(camera.id), 50);
+      }
     });
-    
     return () => {
       Object.values(intervals).forEach(clearInterval);
     };
-  }, [cameras]);
+  }, [cameras, deletingCameraIds]);
 
   return (
     <div className="min-h-screen bg-black">
