@@ -12,7 +12,7 @@ import requests
 from datetime import datetime, timedelta
 import io
 import tempfile
-from backend.config import API_ENDPOINTS
+from config import API_ENDPOINTS
 
 class ShopliftDetector:
     def __init__(self):
