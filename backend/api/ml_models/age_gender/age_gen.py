@@ -249,6 +249,7 @@ class AgeGenderDetector:
 
                 frame_counter += 1
                 time.sleep(0.01)  # Small delay to prevent CPU overload
+                time.sleep(1 / self.fps)
 
         except Exception as e:
             print(f"Error in detection loop: {e}")

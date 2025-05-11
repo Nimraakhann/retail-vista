@@ -800,6 +800,7 @@ class ShopliftDetector:
 
                 # Small delay to prevent CPU overload
                 time.sleep(0.01)
+                time.sleep(1 / self.fps)
 
         except Exception as e:
             print(f"Error in detection loop: {e}")
