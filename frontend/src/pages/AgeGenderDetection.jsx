@@ -627,6 +627,7 @@ function AgeGenderDetection() {
                 </div>
                 <div className="aspect-video bg-black relative overflow-hidden rounded-lg">
                   <WebcamCapture 
+                    apiUrl={`${config.API_BASE_URL}/api/age-gender-detect/`}
                     onCapture={handleWebcamCapture}
                     isStreaming={isWebcamStreaming}
                   />
