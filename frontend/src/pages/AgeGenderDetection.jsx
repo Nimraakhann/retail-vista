@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import DashboardHeader from '../components/DashboardHeader';
 import axios from 'axios';
@@ -15,6 +15,7 @@ import {
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { config } from '../config';
+import WebcamCapture from './WebcamCapture'; // Adjust path as needed
 
 // Register ChartJS components
 ChartJS.register(
@@ -308,12 +309,16 @@ function AgeGenderDetection() {
     name: '',
     videoPath: ''
   });
+  const [isWebcamStreaming, setIsWebcamStreaming] = useState(false);
+  const [webcamFrame, setWebcamFrame] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const isAnalysisPage = location.pathname.includes('/analysis');
   const [isDeleting, setIsDeleting] = useState({});
   const [deletingCameraIds, setDeletingCameraIds] = useState([]);
   const [frameError, setFrameError] = useState({});
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('accessToken');
@@ -361,12 +366,18 @@ function AgeGenderDetection() {
       const cameraId = `camera-${Date.now()}`;
       const isWebcam = formData.videoPath.toLowerCase().trim() === 'webcam';
       
+      if (isWebcam) {
+        setIsWebcamStreaming(true);
+        setShowModal(false);
+        return;
+      }
+
       const response = await axios.post(
         `${API_BASE_URL}/api/connect-age-gender-camera/`,
         {
           camera_id: cameraId,
-          name: formData.name,  // Add this
-          video_path: isWebcam ? '0' : formData.videoPath,
+          name: formData.name,
+          video_path: formData.videoPath,
           camera_type: 'age_gender'
         },
         headers
@@ -374,24 +385,52 @@ function AgeGenderDetection() {
 
       if (response.data.status === 'success') {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
         setShowModal(false);
-        setFormData({ name: '', videoPath: '' });  // Reset both fields
-        
-        const camerasResponse = await axios.get(
-          `${API_BASE_URL}/api/get-age-gender-cameras/`,
-          headers
-        );
-        
-        if (camerasResponse.data.status === 'success') {
-          setCameras(camerasResponse.data.cameras);
-        }
+        setFormData({ name: '', videoPath: '' });
+        await loadCameras();
       } else {
         alert(response.data.message || 'Failed to connect camera');
       }
     } catch (error) {
       console.error('Error connecting camera:', error);
       alert(error.response?.data?.message || 'Error connecting camera');
+    }
+  };
+
+  const handleWebcamCapture = async (blob) => {
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('image', blob, 'webcam.jpg');
+
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) return;
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/age-gender-detect/`,
+        formData,
+        {
+          headers: {
+            ...headers.headers,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.status === 'success') {
+        setResult(response.data.result);
+        // Convert blob to base64 for display
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setWebcamFrame(reader.result);
+        };
+        reader.readAsDataURL(blob);
+      }
+    } catch (error) {
+      console.error('Error processing webcam frame:', error);
+      alert('Failed to process webcam frame');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -539,7 +578,6 @@ function AgeGenderDetection() {
         {isAnalysisPage ? (
           <AnalysisView />
         ) : (
-          // Existing camera grid view
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cameras.map(camera => (
               <div key={camera.camera_id} className="bg-zinc-900 rounded-lg p-4 relative">
@@ -575,6 +613,38 @@ function AgeGenderDetection() {
                 </div>
               </div>
             ))}
+            
+            {isWebcamStreaming && (
+              <div className="bg-zinc-900 rounded-lg p-4 relative">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-white">Webcam Stream</h3>
+                  <button
+                    onClick={() => setIsWebcamStreaming(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="aspect-video bg-black relative overflow-hidden rounded-lg">
+                  <WebcamCapture 
+                    onCapture={handleWebcamCapture}
+                    isStreaming={isWebcamStreaming}
+                  />
+                  {loading && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+                    </div>
+                  )}
+                  {webcamFrame && (
+                    <img
+                      src={webcamFrame}
+                      alt="Processed frame"
+                      className="absolute inset-0 w-full h-full object-contain"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -625,6 +695,13 @@ function AgeGenderDetection() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {result && (
+          <div>
+            <h3>Detection Result:</h3>
+            <pre>{JSON.stringify(result, null, 2)}</pre>
           </div>
         )}
       </div>

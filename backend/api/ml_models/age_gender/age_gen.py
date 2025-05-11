@@ -256,3 +256,30 @@ class AgeGenderDetector:
         finally:
             if cap is not None and cap.isOpened():
                 cap.release()
+
+    def detect_single_image(self, img):
+        results = []
+        faces, confidences = cv.detect_face(img)
+        for face, confidence in zip(faces, confidences):
+            (startX, startY, endX, endY) = face
+            face_crop = img[startY:endY, startX:endX]
+            # Gender
+            gender_crop = cv2.resize(face_crop, (96, 96))
+            gender_crop = gender_crop.astype("float") / 255.0
+            gender_crop = img_to_array(gender_crop)
+            gender_crop = np.expand_dims(gender_crop, axis=0)
+            gender_pred = self.gender_model.predict(gender_crop, verbose=0)[0]
+            gender = self.gender_classes[np.argmax(gender_pred)]
+            # Age
+            face_blob = cv2.dnn.blobFromImage(cv2.resize(face_crop, (227, 227)), 
+                                              1.0, (227, 227), self.MODEL_MEAN_VALUES, swapRB=True)
+            self.age_model.setInput(face_blob)
+            age_pred = self.age_model.forward()
+            age = self.age_classifications[age_pred[0].argmax()]
+            results.append({
+                'box': [int(startX), int(startY), int(endX), int(endY)],
+                'confidence': float(confidence),
+                'gender': gender,
+                'age': age
+            })
+        return results

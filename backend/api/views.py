@@ -2722,3 +2722,26 @@ def check_camera_status(request, camera_id):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def age_gender_detect(request):
+    # Accepts an image file, runs detection, returns result
+    image_file = request.FILES.get('image')
+    if not image_file:
+        return Response({'error': 'No image provided'}, status=400)
+
+    # Read image as numpy array
+    import numpy as np
+    import cv2
+    file_bytes = np.frombuffer(image_file.read(), np.uint8)
+    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    if img is None:
+        return Response({'error': 'Invalid image'}, status=400)
+
+    # Run your AgeGenderDetector here
+    detector = AgeGenderDetector()
+    result = detector.detect_single_image(img)  # You need to implement this method
+
+    return Response({'status': 'success', 'result': result})
