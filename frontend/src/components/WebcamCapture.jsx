@@ -5,15 +5,17 @@ const WebcamStream = ({ apiUrl, onStop }) => {
   const videoRef = useRef(null);
   const [annotatedFrame, setAnnotatedFrame] = useState(null);
   const [streaming, setStreaming] = useState(true);
+  // Store stream in a ref so it persists
+  const streamRef = useRef(null);
 
   useEffect(() => {
-    let stream;
     let intervalId;
 
     const startWebcam = async () => {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      videoRef.current.srcObject = stream;
-
+      if (!streamRef.current) {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      videoRef.current.srcObject = streamRef.current;
       intervalId = setInterval(captureAndSendFrame, 200); // 5 fps
     };
 
@@ -45,7 +47,8 @@ const WebcamStream = ({ apiUrl, onStop }) => {
     return () => {
       setStreaming(false);
       if (intervalId) clearInterval(intervalId);
-      if (stream) stream.getTracks().forEach(track => track.stop());
+      // Do not stop the stream here, so it persists across navigation
+      // To fully persist, move stream management to a React context
     };
   }, [streaming, apiUrl]);
 

@@ -2735,6 +2735,7 @@ def age_gender_detect(request):
     # Read image as numpy array
     import numpy as np
     import cv2
+    import base64
     file_bytes = np.frombuffer(image_file.read(), np.uint8)
     img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
     if img is None:
@@ -2742,6 +2743,15 @@ def age_gender_detect(request):
 
     # Run your AgeGenderDetector here
     detector = AgeGenderDetector()
-    result = detector.detect_single_image(img)  # You need to implement this method
+    result = detector.detect_single_image(img)
 
-    return Response({'status': 'success', 'result': result})
+    # Draw annotations on the frame
+    for r in result:
+        x1, y1, x2, y2 = r['box']
+        label = f"{r['gender']}, {r['age']}"
+        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    _, buffer = cv2.imencode('.jpg', img)
+    result_frame = base64.b64encode(buffer).decode('utf-8')
+    return Response({'status': 'success', 'result': result, 'result_frame': result_frame})
