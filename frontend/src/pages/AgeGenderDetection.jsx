@@ -311,6 +311,7 @@ function AgeGenderDetection() {
   const navigate = useNavigate();
   const location = useLocation();
   const isAnalysisPage = location.pathname.includes('/analysis');
+  const [isDeleting, setIsDeleting] = useState({});
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('accessToken');
@@ -326,30 +327,28 @@ function AgeGenderDetection() {
     };
   };
 
-  useEffect(() => {
-    const loadCameras = async () => {
-      const headers = getAuthHeaders();
-      if (!headers) return;
+  const loadCameras = async () => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
 
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/api/get-age-gender-cameras/`, 
-          headers
-        );
-        if (response.data.status === 'success') {
-          setCameras(response.data.cameras);
-        }
-      } catch (error) {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('accessToken');
-          navigate('/login');
-        }
-        console.error('Error loading cameras:', error);
+    try {
+      console.log('Loading cameras...');
+      const response = await axios.get(
+        `${API_BASE_URL}/api/get-age-gender-cameras/`, 
+        headers
+      );
+      if (response.data.status === 'success') {
+        console.log('Loaded cameras:', response.data.cameras);
+        setCameras(response.data.cameras);
       }
-    };
-
-    loadCameras();
-  }, [navigate]);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        navigate('/login');
+      }
+      console.error('Error loading cameras:', error);
+    }
+  };
 
   const handleConnectCamera = async () => {
     const headers = getAuthHeaders();
@@ -394,11 +393,18 @@ function AgeGenderDetection() {
   };
 
   const handleDeleteCamera = async (cameraId) => {
+    if (isDeleting[cameraId]) return; // Prevent multiple delete attempts
+    
     const headers = getAuthHeaders();
     if (!headers) return;
 
     try {
+      setIsDeleting(prev => ({ ...prev, [cameraId]: true }));
       console.log('Attempting to delete camera:', cameraId);
+      
+      // Optimistically update UI
+      setCameras(prev => prev.filter(cam => cam.camera_id !== cameraId));
+      
       const response = await axios.delete(
         `${API_BASE_URL}/api/delete-age-gender-camera/${cameraId}/`,
         headers
@@ -406,15 +412,10 @@ function AgeGenderDetection() {
       
       console.log('Delete response:', response.data);
       
-      if (response.data.status === 'success') {
-        // Immediately update the UI
-        setCameras(prevCameras => {
-          const updatedCameras = prevCameras.filter(cam => cam.camera_id !== cameraId);
-          console.log('Updated cameras list:', updatedCameras);
-          return updatedCameras;
-        });
-      } else {
+      if (response.data.status !== 'success') {
+        // If delete failed, reload the camera
         console.error('Delete failed:', response.data.message);
+        await loadCameras();
       }
     } catch (error) {
       console.error('Error deleting camera:', error);
@@ -422,6 +423,10 @@ function AgeGenderDetection() {
         localStorage.removeItem('accessToken');
         navigate('/login');
       }
+      // If there's an error, reload the camera
+      await loadCameras();
+    } finally {
+      setIsDeleting(prev => ({ ...prev, [cameraId]: false }));
     }
   };
 
@@ -471,6 +476,26 @@ function AgeGenderDetection() {
           delete window.pollInterval?.[camera.id];
         }
       });
+    };
+  }, []);
+
+  useEffect(() => {
+    loadCameras();
+    const refreshInterval = setInterval(loadCameras, 5000); // Refresh every 5 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [navigate]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadCameras();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

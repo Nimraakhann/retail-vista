@@ -37,6 +37,7 @@ function ShopliftingDetection() {
     name: '',
     videoPath: ''
   });
+  const [isDeleting, setIsDeleting] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
   const isAnalysisPage = location.pathname.includes('/analysis');
@@ -61,11 +62,13 @@ function ShopliftingDetection() {
     if (!headers) return;
 
     try {
+      console.log('Loading cameras...');
       const response = await axios.get(
         `${API_BASE_URL}/api/get-cameras/`, 
         headers
       );
       if (response.data.status === 'success') {
+        console.log('Loaded cameras:', response.data.cameras);
         setCameras(response.data.cameras);
       }
     } catch (error) {
@@ -79,7 +82,7 @@ function ShopliftingDetection() {
 
   useEffect(() => {
     loadCameras();
-    const refreshInterval = setInterval(loadCameras, 30000); // Refresh every 30 seconds
+    const refreshInterval = setInterval(loadCameras, 5000); // Refresh every 5 seconds
     
     return () => clearInterval(refreshInterval);
   }, [navigate]);
@@ -115,11 +118,18 @@ function ShopliftingDetection() {
   };
 
   const handleDeleteCamera = async (cameraId) => {
+    if (isDeleting[cameraId]) return; // Prevent multiple delete attempts
+    
     const headers = getAuthHeaders();
     if (!headers) return;
 
     try {
+      setIsDeleting(prev => ({ ...prev, [cameraId]: true }));
       console.log('Attempting to delete camera:', cameraId);
+      
+      // Optimistically update UI
+      setCameras(prev => prev.filter(cam => cam.id !== cameraId));
+      
       const response = await axios.delete(
         `${API_BASE_URL}/api/delete-camera/${cameraId}/`,
         headers
@@ -127,21 +137,20 @@ function ShopliftingDetection() {
       
       console.log('Delete response:', response.data);
       
-      if (response.data.status === 'success') {
-        // Immediately update the UI
-        setCameras(prevCameras => {
-          const updatedCameras = prevCameras.filter(cam => cam.id !== cameraId);
-          console.log('Updated cameras list:', updatedCameras);
-          return updatedCameras;
-        });
-      } else {
+      if (response.data.status !== 'success') {
+        // If delete failed, reload the camera
         console.error('Delete failed:', response.data.message);
+        await loadCameras();
       }
     } catch (error) {
       console.error('Error deleting camera:', error);
       if (error.response?.status === 401) {
         navigate('/login');
       }
+      // If there's an error, reload the camera
+      await loadCameras();
+    } finally {
+      setIsDeleting(prev => ({ ...prev, [cameraId]: false }));
     }
   };
 
@@ -201,6 +210,19 @@ function ShopliftingDetection() {
       Object.values(stuckCheckerIntervals).forEach(clearInterval);
     };
   }, [cameras]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadCameras();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   function AnalysisView() {
     const [timeFilter, setTimeFilter] = useState('1h');

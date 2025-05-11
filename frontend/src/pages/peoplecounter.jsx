@@ -317,6 +317,7 @@ function PeopleCounter() {
   const [tempPoints, setTempPoints] = useState([]);
   const location = useLocation();
   const isAnalysisPage = location.pathname.includes('/analysis');
+  const [isDeleting, setIsDeleting] = useState({});
 
   const getAuthHeaders = () => {
     const accessToken = localStorage.getItem('accessToken');
@@ -336,22 +337,24 @@ function PeopleCounter() {
     if (!headers) return;
 
     try {
-        const response = await axios.get(
-            `${API_BASE_URL}/api/get-people-counter-cameras/`,
-            headers
-        );
-        if (response.data.status === 'success') {
-            const activeCameras = response.data.cameras.filter(cam => cam.id);
-            setCameras(activeCameras);
-        } else {
-            console.error('Failed to load cameras:', response.data.message);
-        }
+      console.log('Loading cameras...');
+      const response = await axios.get(
+        `${API_BASE_URL}/api/get-people-counter-cameras/`,
+        headers
+      );
+      if (response.data.status === 'success') {
+        const activeCameras = response.data.cameras.filter(cam => cam.id);
+        console.log('Loaded cameras:', activeCameras);
+        setCameras(activeCameras);
+      } else {
+        console.error('Failed to load cameras:', response.data.message);
+      }
     } catch (error) {
-        if (error.response?.status === 401) {
-            localStorage.removeItem('accessToken');
-            navigate('/login');
-        }
-        console.error('Error loading cameras:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        navigate('/login');
+      }
+      console.error('Error loading cameras:', error);
     }
   };
 
@@ -389,11 +392,18 @@ function PeopleCounter() {
   };
 
   const handleDeleteCamera = async (cameraId) => {
+    if (isDeleting[cameraId]) return; // Prevent multiple delete attempts
+    
     const headers = getAuthHeaders();
     if (!headers) return;
 
     try {
+      setIsDeleting(prev => ({ ...prev, [cameraId]: true }));
       console.log('Attempting to delete camera:', cameraId);
+      
+      // Optimistically update UI
+      setCameras(prev => prev.filter(cam => cam.id !== cameraId));
+      
       const response = await axios.delete(
         `${API_BASE_URL}/api/delete-people-counter-camera/${cameraId}/`,
         headers
@@ -401,15 +411,10 @@ function PeopleCounter() {
       
       console.log('Delete response:', response.data);
       
-      if (response.data.status === 'success') {
-        // Immediately update the UI
-        setCameras(prevCameras => {
-          const updatedCameras = prevCameras.filter(cam => cam.id !== cameraId);
-          console.log('Updated cameras list:', updatedCameras);
-          return updatedCameras;
-        });
-      } else {
+      if (response.data.status !== 'success') {
+        // If delete failed, reload the camera
         console.error('Delete failed:', response.data.message);
+        await loadCameras();
       }
     } catch (error) {
       console.error('Error deleting camera:', error);
@@ -417,6 +422,10 @@ function PeopleCounter() {
         localStorage.removeItem('accessToken');
         navigate('/login');
       }
+      // If there's an error, reload the camera
+      await loadCameras();
+    } finally {
+      setIsDeleting(prev => ({ ...prev, [cameraId]: false }));
     }
   };
 
@@ -539,10 +548,23 @@ function PeopleCounter() {
 
   useEffect(() => {
     loadCameras();
+    const refreshInterval = setInterval(loadCameras, 5000); // Refresh every 5 seconds
     
-    // No cleanup on unmount to preserve camera data
-    return () => {};
-}, []);
+    return () => clearInterval(refreshInterval);
+  }, [navigate]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadCameras();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     const intervals = {};
