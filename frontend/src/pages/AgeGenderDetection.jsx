@@ -338,8 +338,9 @@ function AgeGenderDetection() {
         headers
       );
       if (response.data.status === 'success') {
-        console.log('Loaded cameras:', response.data.cameras);
-        setCameras(response.data.cameras);
+        const activeCameras = response.data.cameras.filter(cam => cam.camera_id);
+        console.log('Loaded cameras:', activeCameras);
+        setCameras(activeCameras);
       }
     } catch (error) {
       if (error.response?.status === 401) {
@@ -481,7 +482,7 @@ function AgeGenderDetection() {
 
   useEffect(() => {
     loadCameras();
-    const refreshInterval = setInterval(loadCameras, 5000); // Refresh every 5 seconds
+    const refreshInterval = setInterval(loadCameras, 2000); // Refresh every 2 seconds
     
     return () => clearInterval(refreshInterval);
   }, [navigate]);
@@ -489,7 +490,7 @@ function AgeGenderDetection() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        loadCameras();
+        loadCameras(); // Load immediately when becoming visible
       }
     };
 

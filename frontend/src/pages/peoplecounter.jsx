@@ -339,15 +339,13 @@ function PeopleCounter() {
     try {
       console.log('Loading cameras...');
       const response = await axios.get(
-        `${API_BASE_URL}/api/get-people-counter-cameras/`,
+        `${API_BASE_URL}/api/get-people-counter-cameras/`, 
         headers
       );
       if (response.data.status === 'success') {
         const activeCameras = response.data.cameras.filter(cam => cam.id);
         console.log('Loaded cameras:', activeCameras);
         setCameras(activeCameras);
-      } else {
-        console.error('Failed to load cameras:', response.data.message);
       }
     } catch (error) {
       if (error.response?.status === 401) {
@@ -548,7 +546,7 @@ function PeopleCounter() {
 
   useEffect(() => {
     loadCameras();
-    const refreshInterval = setInterval(loadCameras, 5000); // Refresh every 5 seconds
+    const refreshInterval = setInterval(loadCameras, 2000); // Refresh every 2 seconds
     
     return () => clearInterval(refreshInterval);
   }, [navigate]);
@@ -556,7 +554,7 @@ function PeopleCounter() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        loadCameras();
+        loadCameras(); // Load immediately when becoming visible
       }
     };
 
