@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { config } from '../config';
+import Pagination from './Pagination';
 
 // Global variable to track if any sound is playing
 let isSoundPlaying = false;
@@ -17,11 +18,14 @@ function ShopliftingAlert() {
   const [mounted, setMounted] = useState(false);
   const [alertQueue, setAlertQueue] = useState([]);
   const [isDismissing, setIsDismissing] = useState(false);
-  const [lastAlertId, setLastAlertId] = useState(null); // Track last alert to avoid duplicates
-  const [lastAlertTime, setLastAlertTime] = useState(null); // Track time of last alert for throttling
-  const [isPollingPaused, setIsPollingPaused] = useState(false); // Pause polling when user is viewing evidence
-  const processedAlerts = useRef(new Set()); // Track all alerts we've processed to avoid duplicates
-  const audioRef = useRef(null); // Reference to the audio element
+  const [lastAlertId, setLastAlertId] = useState(null);
+  const [lastAlertTime, setLastAlertTime] = useState(null);
+  const [isPollingPaused, setIsPollingPaused] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const processedAlerts = useRef(new Set());
+  const audioRef = useRef(null);
   const navigate = useNavigate();
 
   const getAuthHeaders = () => {
@@ -149,17 +153,53 @@ function ShopliftingAlert() {
     const isCurrentlyShowing = alertData && alertData.id === newAlert.id;
     
     if (!isAlreadyQueued && !isCurrentlyShowing) {
-      if (!isVisible) {
-        // If no alert is currently showing, show this one immediately
-        setAlertData(newAlert);
-        setIsVisible(true);
-        // Reset the userStoppedSound flag for new alerts
-        userStoppedSound = false;
-        playAlertSound();
-      } else {
-        // Otherwise add it to the queue
-        setAlertQueue(prevQueue => [...prevQueue, newAlert]);
-      }
+      // Verify media files exist before showing alert
+      const verifyMedia = async () => {
+        try {
+          // Check thumbnail
+          if (newAlert.thumbnail) {
+            const thumbResponse = await fetch(newAlert.thumbnail, { method: 'HEAD' });
+            if (!thumbResponse.ok) {
+              console.warn("Thumbnail not available:", newAlert.thumbnail);
+              newAlert.thumbnail = null;
+            }
+          }
+          
+          // Check video
+          if (newAlert.video_clip) {
+            const videoResponse = await fetch(newAlert.video_clip, { method: 'HEAD' });
+            if (!videoResponse.ok) {
+              console.warn("Video not available:", newAlert.video_clip);
+              newAlert.video_clip = null;
+            }
+          }
+          
+          // Show alert with verified media
+          if (!isVisible) {
+            setAlertData(newAlert);
+            setIsVisible(true);
+            userStoppedSound = false;
+            playAlertSound();
+          } else {
+            setAlertQueue(prevQueue => [...prevQueue, newAlert]);
+          }
+        } catch (error) {
+          console.error("Error verifying media:", error);
+          // Show alert anyway, but without media
+          newAlert.thumbnail = null;
+          newAlert.video_clip = null;
+          if (!isVisible) {
+            setAlertData(newAlert);
+            setIsVisible(true);
+            userStoppedSound = false;
+            playAlertSound();
+          } else {
+            setAlertQueue(prevQueue => [...prevQueue, newAlert]);
+          }
+        }
+      };
+      
+      verifyMedia();
     }
   };
 
@@ -607,14 +647,49 @@ function ShopliftingAlert() {
     }, 300);
   };
 
+  const fetchAlerts = async (page = 1) => {
+    try {
+      setIsLoading(true);
+      const headers = getAuthHeaders();
+      if (!headers) return;
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/get-shoplifting-alerts/?page=${page}&page_size=10`,
+        headers
+      );
+
+      if (response.data.status === 'success') {
+        setAlertData(response.data.alerts);
+        setTotalPages(response.data.pagination.total_pages);
+        setCurrentPage(page);
+      }
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      fetchAlerts(newPage);
+    }
+  };
+
+  const handleItemsPerPageChange = (newSize) => {
+    setItemsPerPage(newSize);
+    setCurrentPage(1);
+    fetchAlerts(1);
+  };
+
   // Always render the container even if no visible alert
   if (!isVisible || !alertData) {
-    return <div className="shoplifting-alert-container" style={{display: 'none'}} />;
+    return <div className="hidden" />;
   }
 
   const animationClass = isDismissing 
-    ? 'animate-slide-out-right' 
-    : 'animate-slide-in-right';
+    ? 'translate-x-full transition-transform duration-300 ease-in-out' 
+    : 'translate-x-0 transition-transform duration-300 ease-in-out';
 
   return (
     <div className={`fixed top-20 right-4 w-96 z-50 ${animationClass}`}>
@@ -628,7 +703,7 @@ function ShopliftingAlert() {
           </div>
           <button 
             onClick={dismissAlert}
-            className="text-white hover:text-gray-200"
+            className="text-white hover:text-gray-200 transition-colors"
             aria-label="Close alert"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -643,33 +718,53 @@ function ShopliftingAlert() {
             {alertData.camera_name}
           </p>
           
-          {alertData.thumbnail && (
-            <div className="aspect-video bg-black rounded mb-3 overflow-hidden">
+          {alertData.thumbnail ? (
+            <div className="aspect-video mb-4 relative">
               <img 
                 src={alertData.thumbnail} 
                 alt="Alert thumbnail" 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/placeholder-thumbnail.jpg';
+                }}
               />
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="aspect-video mb-4 bg-gray-800 rounded flex items-center justify-center">
+              <span className="text-gray-400">No thumbnail available</span>
             </div>
           )}
           
-          <div className="flex justify-between space-x-2">
+          <div className="flex justify-center space-x-4 mb-4">
             <button
               onClick={handleViewCamera}
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
             >
               View Camera
             </button>
             <button
               onClick={handleViewEvidence}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
             >
               View Evidence
             </button>
           </div>
-          
-          
-          
+
+          <div className="[&_select]:bg-purple-700 [&_select]:text-white [&_option]:bg-purple-700">
+            <Pagination
+              totalItems={totalPages * 10}
+              itemsPerPage={10}
+              currentPage={currentPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          </div>
         </div>
       </div>
     </div>

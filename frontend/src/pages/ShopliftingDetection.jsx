@@ -70,9 +70,14 @@ function ShopliftingDetection() {
         headers
       );
       if (response.data.status === 'success') {
-        const activeCameras = response.data.cameras.filter(cam => cam.id);
-        console.log('Loaded cameras:', activeCameras);
-        setCameras(activeCameras);
+        // Only update cameras if we got a valid response
+        if (Array.isArray(response.data.cameras)) {
+          console.log('Loaded cameras:', response.data.cameras);
+          setCameras(response.data.cameras);
+        } else {
+          console.error('Invalid camera list format:', response.data);
+          setCameras([]);
+        }
       }
     } catch (error) {
       if (error.response?.status === 401) {
@@ -80,6 +85,7 @@ function ShopliftingDetection() {
         navigate('/login');
       }
       console.error('Error loading cameras:', error);
+      setCameras([]); // Clear cameras on error
     }
   };
 
@@ -162,6 +168,7 @@ function ShopliftingDetection() {
     if (deletingCameraIds.includes(cameraId)) return;
     const headers = getAuthHeaders();
     if (!headers) return;
+
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/get-frame/${cameraId}/`, 
@@ -177,13 +184,16 @@ function ShopliftingDetection() {
       }
     } catch (error) {
       if (error.response?.status === 404) {
+        // Camera not found or inactive - mark as error but don't remove
         setFrameError(prev => ({ ...prev, [cameraId]: true }));
         return;
       }
       if (error.response?.status === 401) {
         localStorage.removeItem('accessToken');
         navigate('/login');
+        return;
       }
+      // For other errors, just log and continue
       console.error(`Error getting frame for camera ${cameraId}:`, error);
     }
   };

@@ -42,6 +42,7 @@ from .models import DetectionData
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncHour, TruncDay, TruncWeek, TruncMonth
 from config import FRONTEND_ENDPOINTS
+from django.core.files.storage import default_storage
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -53,6 +54,42 @@ age_gender_detector_instances = {}
 age_gender_detector_lock = Lock()
 
 people_counter_detectors = {}
+
+def cleanup_old_alert_files():
+    """Clean up alert files older than 15 days"""
+    try:
+        from .models import ShopliftingAlert
+        
+        # Get alerts older than 15 days
+        cutoff_date = timezone.now() - timedelta(days=15)
+        old_alerts = ShopliftingAlert.objects.filter(
+            timestamp__lt=cutoff_date,
+            is_reviewed=True  # Only clean up reviewed alerts
+        )
+        
+        for alert in old_alerts:
+            # Delete video file
+            if alert.video_clip:
+                try:
+                    default_storage.delete(alert.video_clip.path)
+                    print(f"Deleted old video file: {alert.video_clip.path}")
+                except Exception as e:
+                    print(f"Error deleting video file: {str(e)}")
+            
+            # Delete thumbnail file
+            if alert.video_thumbnail:
+                try:
+                    default_storage.delete(alert.video_thumbnail.path)
+                    print(f"Deleted old thumbnail file: {alert.video_thumbnail.path}")
+                except Exception as e:
+                    print(f"Error deleting thumbnail file: {str(e)}")
+            
+            # Delete the alert record
+            alert.delete()
+            print(f"Deleted old alert record: {alert.id}")
+            
+    except Exception as e:
+        print(f"Error in cleanup_old_alert_files: {str(e)}")
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
@@ -2009,6 +2046,9 @@ def get_first_frame(request):
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def create_shoplifting_alert(request):
+    # Run cleanup before creating new alert
+    cleanup_old_alert_files()
+    
     try:
         print("Received shoplifting alert request")
         camera_id = request.data.get('camera_id')
@@ -2021,10 +2061,11 @@ def create_shoplifting_alert(request):
                 camera_id=camera_id,
                 user=request.user,
                 camera_type='shoplift',
-                is_active=True  # Only allow alerts for active cameras
+                is_active=True
             )
         except Camera.DoesNotExist:
             return Response({'error': f'Camera not found or inactive with ID {camera_id}'}, status=404)
+            
             
         # Check if files are in the request
         video_clip = request.FILES.get('video_clip')
@@ -2066,6 +2107,8 @@ def get_shoplifting_alerts(request):
     try:
         # Get parameters
         is_reviewed = request.query_params.get('is_reviewed')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 10))
         
         # Start with all alerts for user's cameras
         from .models import ShopliftingAlert
@@ -2078,8 +2121,13 @@ def get_shoplifting_alerts(request):
             is_reviewed = is_reviewed.lower() == 'true'
             alerts_query = alerts_query.filter(is_reviewed=is_reviewed)
             
-        # Get alerts
-        alerts = alerts_query.select_related('camera').order_by('-timestamp')
+        # Get total count for pagination
+        total_count = alerts_query.count()
+        
+        # Get paginated alerts with efficient query
+        alerts = alerts_query.select_related('camera').order_by('-timestamp')[
+            (page - 1) * page_size:page * page_size
+        ]
         
         # Format response
         alert_data = []
@@ -2096,7 +2144,13 @@ def get_shoplifting_alerts(request):
             
         return Response({
             'status': 'success',
-            'alerts': alert_data
+            'alerts': alert_data,
+            'pagination': {
+                'total_count': total_count,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': (total_count + page_size - 1) // page_size
+            }
         })
         
     except Exception as e:
