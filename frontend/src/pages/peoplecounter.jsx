@@ -319,6 +319,7 @@ function PeopleCounter() {
   const isAnalysisPage = location.pathname.includes('/analysis');
   const [isDeleting, setIsDeleting] = useState({});
   const [deletingCameraIds, setDeletingCameraIds] = useState([]);
+  const [frameError, setFrameError] = useState({});
 
   const getAuthHeaders = () => {
     const accessToken = localStorage.getItem('accessToken');
@@ -442,10 +443,11 @@ function PeopleCounter() {
         if (frameElement) {
           frameElement.src = `data:image/jpeg;base64,${response.data.frame}`;
         }
+        setFrameError(prev => ({ ...prev, [cameraId]: false }));
       }
     } catch (error) {
       if (error.response?.status === 404) {
-        setCameras(prev => prev.filter(cam => cam.id !== cameraId));
+        setFrameError(prev => ({ ...prev, [cameraId]: true }));
         return;
       }
       console.error(`Error getting frame for camera ${cameraId}:`, error);
@@ -653,11 +655,17 @@ function PeopleCounter() {
                   </button>
                 </div>
                 <div className="aspect-video bg-black relative overflow-hidden rounded-lg">
-                  <img
-                    id={`frame-${camera.id}`}
-                    className="absolute inset-0 w-full h-full object-contain"
-                    alt="Video feed"
-                  />
+                  {frameError[camera.id] ? (
+                    <div className="flex items-center justify-center h-full w-full text-gray-400">
+                      No video available
+                    </div>
+                  ) : (
+                    <img
+                      id={`frame-${camera.id}`}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt="Video feed"
+                    />
+                  )}
                 </div>
               </div>
             ))}
