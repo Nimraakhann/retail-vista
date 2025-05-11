@@ -154,7 +154,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # Only for development
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 # Allow all headers and methods
