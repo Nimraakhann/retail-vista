@@ -41,7 +41,7 @@ from .ml_models.people_counter.PeopleCounterDetector import PeopleCounterDetecto
 from .models import DetectionData
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncHour, TruncDay, TruncWeek, TruncMonth
-from ..config import FRONTEND_ENDPOINTS
+from config import FRONTEND_ENDPOINTS
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
