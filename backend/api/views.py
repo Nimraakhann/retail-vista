@@ -196,24 +196,16 @@ def get_cameras(request):
             camera_type='shoplift',
             is_active=True
         )
-        
-        # Get auth token from request
         token = None
         if 'HTTP_AUTHORIZATION' in request.META and request.META['HTTP_AUTHORIZATION'].startswith('Bearer '):
             token = request.META['HTTP_AUTHORIZATION'].split(' ')[1]
-        
         if not token:
-            # Generate a new token if not available in header
             refresh = RefreshToken.for_user(request.user)
             token = str(refresh.access_token)
-            
         print(f"Token available for camera activation: {bool(token)}")
-        
-        # Clean up any detectors for inactive cameras
         with detector_lock:
             all_camera_ids = set(cam.camera_id for cam in cameras)
             stale_detector_ids = set(detector_instances.keys()) - all_camera_ids
-            
             for stale_id in stale_detector_ids:
                 print(f"Cleaning up stale detector for camera {stale_id}")
                 try:
@@ -223,7 +215,6 @@ def get_cameras(request):
                     del detector_instances[stale_id]
                 except Exception as e:
                     print(f"Error cleaning up stale detector: {str(e)}")
-        
         camera_list = []
         for camera in cameras:
             camera_id = camera.camera_id
@@ -235,25 +226,22 @@ def get_cameras(request):
                         detector_instances[camera_id] = detector
                         print(f"Successfully started detection for camera {camera_id}")
                     else:
-                        print(f"Failed to start detection for camera {camera_id}")
+                        print(f"Failed to start detection for camera {camera_id}, skipping from list")
+                        continue  # Skip this camera if detector can't start
                 else:
-                    # Update the auth token in existing detector
                     detector = detector_instances[camera_id]
                     if detector.auth_token != token:
                         print(f"Updating auth token for camera {camera_id}")
                         detector.auth_token = token
-            
             camera_list.append({
                 'id': camera_id,
                 'path': camera.video_path.strip(),
                 'name': camera.name or f"Camera {camera.id}"
             })
-        
         return JsonResponse({
             'status': 'success',
             'cameras': camera_list
         })
-        
     except Exception as e:
         print(f"Error getting cameras: {str(e)}")
         import traceback
