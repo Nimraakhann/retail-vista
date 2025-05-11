@@ -667,7 +667,7 @@ def reset_password(request):
         subject = 'Password Reset Request'
         message = f'''
         Click the following link to reset your password:
-        {FRONTEND_ENDPOINTS["reset_password"]}?uid={uid}&token={token}
+        https://retailvista.netlify.app/reset-password?uid={uid}&token={token}
         
         This link will expire in 24 hours.
         '''
@@ -850,7 +850,7 @@ def signup(request):
         )
 
         # Send verification email
-        verification_link = f"{FRONTEND_ENDPOINTS['verify_email']}?token={verification_token}"
+        verification_link = f'https://retailvista.netlify.app/verify-email?token={verification_token}'
         send_mail(
             'Verify your email - Retail Vista',
             f'''Welcome to Retail Vista!
@@ -1057,7 +1057,7 @@ def request_password_reset(request):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         
         # Create reset link
-        reset_link = f'{FRONTEND_ENDPOINTS["reset_password"]}?uid={uid}&token={token}'
+        reset_link = f'https://retailvista.netlify.app/reset-password?uid={uid}&token={token}'
         
         # Send email
         subject = 'Password Reset Request'

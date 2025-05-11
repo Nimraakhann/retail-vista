@@ -180,7 +180,7 @@ CORS_ALLOW_METHODS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "https://retailvista.netlify.app/",
+    "https://retailvista.netlify.app",
 ]
 
 # Email Configuration
