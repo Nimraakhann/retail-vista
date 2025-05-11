@@ -656,12 +656,12 @@ class ShopliftDetector:
         try:
             cap = cv2.VideoCapture(video_path)
             if not cap.isOpened():
-                raise Exception("Could not open video file")
+                raise Exception("Could not open video source")
                 
-            # Get actual FPS from video
+            # Set FPS
             self.fps = cap.get(cv2.CAP_PROP_FPS)
-            if self.fps <= 0:
-                self.fps = 30  # Default to 30 if can't get valid FPS
+            if not self.fps or self.fps <= 1:
+                self.fps = 25  # Default to 25 FPS if not detected
                 
             # Initialize buffer sizes based on FPS
             self.buffer_size = int(self.max_buffer_seconds * self.fps)
@@ -798,8 +798,6 @@ class ShopliftDetector:
                 # Send analysis data if needed
                 self.send_analysis_data()
 
-                # Small delay to prevent CPU overload
-                time.sleep(0.01)
                 time.sleep(1 / self.fps)
 
         except Exception as e:
