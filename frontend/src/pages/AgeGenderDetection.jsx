@@ -400,19 +400,10 @@ function AgeGenderDetection() {
     try {
       const response = await axios.delete(
         `${API_BASE_URL}/api/delete-age-gender-camera/${cameraId}/`,
-        headers // Just send headers directly without spreading
+        headers
       );
-
       if (response.data.status === 'success') {
-        // Remove camera from state
-        setCameras(prevCameras => {
-          const updatedCameras = prevCameras.filter(cam => cam.camera_id !== cameraId);
-          // If this was the last camera, navigate to analysis view
-          if (updatedCameras.length === 0) {
-            navigate('/age-gender/analysis');
-          }
-          return updatedCameras;
-        });
+        setCameras(prev => prev.filter(cam => cam.camera_id !== cameraId));
       }
     } catch (error) {
       if (error.response?.status === 401) {

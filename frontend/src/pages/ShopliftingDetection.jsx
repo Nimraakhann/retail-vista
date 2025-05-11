@@ -123,7 +123,6 @@ function ShopliftingDetection() {
         `${API_BASE_URL}/api/delete-camera/${cameraId}/`,
         headers
       );
-      
       if (response.data.status === 'success') {
         setCameras(prev => prev.filter(cam => cam.id !== cameraId));
       }

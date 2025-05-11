@@ -393,11 +393,13 @@ function PeopleCounter() {
     if (!headers) return;
 
     try {
-      await axios.delete(
+      const response = await axios.delete(
         `${API_BASE_URL}/api/delete-people-counter-camera/${cameraId}/`,
         headers
       );
-      setCameras(prev => prev.filter(cam => cam.id !== cameraId));
+      if (response.data.status === 'success') {
+        setCameras(prev => prev.filter(cam => cam.id !== cameraId));
+      }
     } catch (error) {
       console.error('Error deleting camera:', error);
     }
