@@ -1,85 +1,61 @@
 import React, { useRef, useEffect, useState } from 'react';
+import axios from 'axios';
 
-const WebcamCapture = ({ onCapture, isStreaming = false }) => {
+const WebcamStream = ({ apiUrl, onStop }) => {
   const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const [error, setError] = useState(null);
+  const [annotatedFrame, setAnnotatedFrame] = useState(null);
+  const [streaming, setStreaming] = useState(true);
 
   useEffect(() => {
-    if (isStreaming) {
-      startWebcam();
-    } else {
-      stopWebcam();
-    }
-    return () => stopWebcam();
-  }, [isStreaming]);
+    let stream;
+    let intervalId;
 
-  const startWebcam = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-      }
-    } catch (err) {
-      setError('Failed to access webcam: ' + err.message);
-      console.error('Webcam error:', err);
-    }
-  };
+    const startWebcam = async () => {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoRef.current.srcObject = stream;
 
-  const stopWebcam = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  };
+      intervalId = setInterval(captureAndSendFrame, 200); // 5 fps
+    };
 
-  const captureFrame = () => {
-    if (!videoRef.current) return;
+    const captureAndSendFrame = async () => {
+      if (!videoRef.current) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
 
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoRef.current, 0, 0);
-    
-    canvas.toBlob((blob) => {
-      if (onCapture) {
-        onCapture(blob);
-      }
-    }, 'image/jpeg', 0.95);
-  };
+      canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('image', blob, 'frame.jpg');
+        try {
+          const response = await axios.post(apiUrl, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          if (response.data.status === 'success' && response.data.result_frame) {
+            setAnnotatedFrame('data:image/jpeg;base64,' + response.data.result_frame);
+          }
+        } catch (err) {
+          // handle error
+        }
+      }, 'image/jpeg', 0.95);
+    };
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
+    if (streaming) startWebcam();
+
+    return () => {
+      setStreaming(false);
+      if (intervalId) clearInterval(intervalId);
+      if (stream) stream.getTracks().forEach(track => track.stop());
+    };
+  }, [streaming, apiUrl]);
 
   return (
-    <div className="relative">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        className="w-full h-full object-contain"
-      />
-      {isStreaming && (
-        <button
-          onClick={captureFrame}
-          className="absolute bottom-4 right-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-        >
-          Capture Frame
-        </button>
-      )}
+    <div>
+      <video ref={videoRef} autoPlay playsInline style={{ display: annotatedFrame ? 'none' : 'block' }} />
+      {annotatedFrame && <img src={annotatedFrame} alt="Annotated" />}
+      <button onClick={onStop}>Stop</button>
     </div>
   );
 };
 
-export default WebcamCapture;
+export default WebcamStream;
