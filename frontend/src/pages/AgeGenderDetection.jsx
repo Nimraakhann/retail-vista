@@ -398,19 +398,30 @@ function AgeGenderDetection() {
     if (!headers) return;
 
     try {
+      console.log('Attempting to delete camera:', cameraId);
       const response = await axios.delete(
         `${API_BASE_URL}/api/delete-age-gender-camera/${cameraId}/`,
         headers
       );
+      
+      console.log('Delete response:', response.data);
+      
       if (response.data.status === 'success') {
-        setCameras(prev => prev.filter(cam => cam.camera_id !== cameraId));
+        // Immediately update the UI
+        setCameras(prevCameras => {
+          const updatedCameras = prevCameras.filter(cam => cam.camera_id !== cameraId);
+          console.log('Updated cameras list:', updatedCameras);
+          return updatedCameras;
+        });
+      } else {
+        console.error('Delete failed:', response.data.message);
       }
     } catch (error) {
+      console.error('Error deleting camera:', error);
       if (error.response?.status === 401) {
         localStorage.removeItem('accessToken');
         navigate('/login');
       }
-      console.error('Error deleting camera:', error);
     }
   };
 
