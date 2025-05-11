@@ -396,15 +396,11 @@ function AgeGenderDetection() {
 
   const handleDeleteCamera = async (cameraId) => {
     if (isDeleting[cameraId] || deletingCameraIds.includes(cameraId)) return; // Prevent multiple delete attempts
-    
     setDeletingCameraIds(prev => [...prev, cameraId]);
     const headers = getAuthHeaders();
     if (!headers) return;
-
     try {
       setIsDeleting(prev => ({ ...prev, [cameraId]: true }));
-      // Optimistically update UI
-      setCameras(prev => prev.filter(cam => cam.camera_id !== cameraId));
       await axios.delete(
         `${API_BASE_URL}/api/delete-age-gender-camera/${cameraId}/`,
         headers

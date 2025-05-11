@@ -121,16 +121,11 @@ function ShopliftingDetection() {
 
   const handleDeleteCamera = async (cameraId) => {
     if (isDeleting[cameraId] || deletingCameraIds.includes(cameraId)) return; // Prevent multiple delete attempts
-    
     setDeletingCameraIds(prev => [...prev, cameraId]);
     const headers = getAuthHeaders();
     if (!headers) return;
-
     try {
       setIsDeleting(prev => ({ ...prev, [cameraId]: true }));
-      console.log('Attempting to delete camera:', cameraId);
-      // Optimistically update UI
-      setCameras(prev => prev.filter(cam => cam.id !== cameraId));
       await axios.delete(
         `${API_BASE_URL}/api/delete-camera/${cameraId}/`,
         headers
@@ -146,7 +141,6 @@ function ShopliftingDetection() {
         } else {
           setDeletingCameraIds(prev => prev.filter(id => id !== cameraId));
           setIsDeleting(prev => ({ ...prev, [cameraId]: false }));
-          // Final reload to ensure UI is in sync
           loadCameras();
         }
       };
