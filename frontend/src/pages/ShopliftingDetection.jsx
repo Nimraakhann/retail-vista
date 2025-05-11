@@ -125,7 +125,7 @@ function ShopliftingDetection() {
       );
       
       if (response.data.status === 'success') {
-        loadCameras(); // Reload cameras from backend instead of updating state directly
+        setCameras(prev => prev.filter(cam => cam.id !== cameraId));
       }
     } catch (error) {
       if (error.response?.status === 401) {

@@ -397,7 +397,7 @@ function PeopleCounter() {
         `${API_BASE_URL}/api/delete-people-counter-camera/${cameraId}/`,
         headers
       );
-      loadCameras();
+      setCameras(prev => prev.filter(cam => cam.id !== cameraId));
     } catch (error) {
       console.error('Error deleting camera:', error);
     }
