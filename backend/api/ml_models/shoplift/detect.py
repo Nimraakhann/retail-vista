@@ -12,6 +12,7 @@ import requests
 from datetime import datetime, timedelta
 import io
 import tempfile
+from backend.config import API_ENDPOINTS
 
 class ShopliftDetector:
     def __init__(self):
@@ -137,7 +138,7 @@ class ShopliftDetector:
             try:
                 import requests
                 # Use a status check API endpoint
-                status_url = f"http://127.0.0.1:8000/api/check-camera-status/{self.camera_id}/"
+                status_url = f"{API_ENDPOINTS['check_camera_status']}{self.camera_id}/"
                 headers = {"Authorization": f"Bearer {self.auth_token}"}
                 status_response = requests.get(status_url, headers=headers, timeout=5)
                 
@@ -348,7 +349,7 @@ class ShopliftDetector:
                 }
                 
                 # Send alert to backend
-                alert_url = 'http://localhost:8000/api/create-shoplifting-alert/'
+                alert_url = API_ENDPOINTS['create_shoplifting_alert']
                 headers = {'Authorization': f'Bearer {self.auth_token}'}
                 data = {'camera_id': self.camera_id}
                 
@@ -518,7 +519,7 @@ class ShopliftDetector:
                 }
                 
                 response = requests.post(
-                    'http://localhost:8000/api/update-detection-data/',
+                    API_ENDPOINTS['update_detection_data'],
                     json=data,
                     headers=headers
                 )
@@ -949,7 +950,7 @@ class ShopliftDetector:
             
             # Send completed alert to backend
             try:
-                url = 'http://localhost:8000/api/update-alert-evidence/'
+                url = API_ENDPOINTS['update_alert_evidence']
                 
                 print(f"Sending complete alert evidence to backend for alert ID: {alert_id}")
                 

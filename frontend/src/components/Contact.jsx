@@ -12,6 +12,8 @@ const Contact = () => {
     const [status, setStatus] = useState({ type: '', message: '' });
     const [loading, setLoading] = useState(false);
 
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         // Validation patterns
@@ -38,7 +40,7 @@ const Contact = () => {
         setStatus({ type: '', message: '' });
 
         try {
-            const response = await axios.post('http://localhost:8000/api/contact/', formData, {
+            const response = await axios.post(`${API_BASE_URL}/api/contact/`, formData, {
                 timeout: 10000  
             });
             

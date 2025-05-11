@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { config } from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 const DisplayPromotions = () => {
   const [promotions, setPromotions] = useState([]);
@@ -11,7 +14,7 @@ const DisplayPromotions = () => {
     const fetchPromotions = async () => {
       try {
         const accessToken = localStorage.getItem('accessToken');
-        const response = await axios.get('http://localhost:8000/api/promotions/active/', {
+        const response = await axios.get(`${API_BASE_URL}/api/promotions/active/`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }

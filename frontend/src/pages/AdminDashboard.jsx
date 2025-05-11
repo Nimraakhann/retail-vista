@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../components/DashboardHeader';
 import axios from 'axios';
 import Pagination from '../components/Pagination';
+import { config } from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -26,7 +29,7 @@ const AdminDashboard = () => {
     // Fetch all users with their profiles
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/get_all_users/', {
+        const response = await axios.get(`${API_BASE_URL}/api/get_all_users/`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
@@ -52,7 +55,7 @@ const AdminDashboard = () => {
     const accessToken = localStorage.getItem('accessToken');
     
     try {
-      const response = await axios.delete(`http://localhost:8000/api/delete_user/${userId}/`, {
+      const response = await axios.delete(`${API_BASE_URL}/api/delete_user/${userId}/`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
@@ -89,7 +92,7 @@ const AdminDashboard = () => {
         };
 
         const response = await axios.post(
-          'http://localhost:8000/api/admin/update_user/', 
+          `${API_BASE_URL}/api/admin/update_user/`, 
           { user_id: userId, ...userData },
           {
             headers: {

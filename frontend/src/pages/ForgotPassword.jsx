@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import Header from '../components/Header';
+import { config } from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -15,7 +18,7 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/request-password-reset/', {
+      const response = await axios.post(`${API_BASE_URL}/api/request-password-reset/`, {
         email: email
       });
 

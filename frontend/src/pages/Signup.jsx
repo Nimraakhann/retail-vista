@@ -3,6 +3,9 @@ import Footer from '../components/Footer';
 import Header from '../components/Header';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { config } from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -76,7 +79,7 @@ function Signup() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/signup/', formData);
+      const response = await axios.post(`${API_BASE_URL}/api/signup/`, formData);
 
       if (response.data.status === 'success') {
         setSuccess('Please check your email to verify your account.');

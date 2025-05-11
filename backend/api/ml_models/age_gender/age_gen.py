@@ -12,6 +12,7 @@ from threading import Lock
 import os
 import time
 import requests
+from backend.config import API_ENDPOINTS
 
 class AgeGenderDetector:
     def __init__(self):
@@ -108,7 +109,7 @@ class AgeGenderDetector:
                 }
                 
                 response = requests.post(
-                    'http://localhost:8000/api/update-age-gender-data/',
+                    API_ENDPOINTS['update_age_gender_data'],
                     json=data,
                     headers=headers
                 )

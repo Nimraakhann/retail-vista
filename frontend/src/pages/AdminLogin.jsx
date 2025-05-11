@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { config } from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 function AdminLogin() {
   const navigate = useNavigate();
@@ -28,7 +31,7 @@ function AdminLogin() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/login/', {
+      const response = await axios.post(`${API_BASE_URL}/api/login/`, {
         email: formData.email,
         password: formData.password
       });

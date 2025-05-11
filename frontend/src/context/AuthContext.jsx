@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { config } from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 const AuthContext = createContext(null);
 
@@ -39,7 +42,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, rememberMe = false) => {
     try {
-      const response = await axios.post('http://localhost:8000/api/login/', {
+      const response = await axios.post(`${API_BASE_URL}/api/login/`, {
         email,
         password,
       });
@@ -84,7 +87,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
       const response = await axios.post(
-        'http://localhost:8000/api/update-profile/',
+        `${API_BASE_URL}/api/update-profile/`,
         profileData,
         {
           headers: {

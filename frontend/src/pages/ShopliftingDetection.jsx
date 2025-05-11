@@ -14,6 +14,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import { config } from '../config';
 
 // Register ChartJS components
 ChartJS.register(
@@ -26,6 +27,8 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
+const API_BASE_URL = config.API_BASE_URL;
 
 function ShopliftingDetection() {
   const [cameras, setCameras] = useState([]);
@@ -59,7 +62,7 @@ function ShopliftingDetection() {
 
     try {
       const response = await axios.get(
-        'http://localhost:8000/api/get-cameras/', 
+        `${API_BASE_URL}/api/get-cameras/`, 
         headers
       );
       if (response.data.status === 'success') {
@@ -88,7 +91,7 @@ function ShopliftingDetection() {
     try {
       const cameraId = `camera-${Date.now()}`;
       const response = await axios.post(
-        'http://localhost:8000/api/connect-camera/',
+        `${API_BASE_URL}/api/connect-camera/`,
         {
           camera_id: cameraId,
           video_path: formData.videoPath,
@@ -117,7 +120,7 @@ function ShopliftingDetection() {
 
     try {
       const response = await axios.delete(
-        `http://localhost:8000/api/delete-camera/${cameraId}/`,
+        `${API_BASE_URL}/api/delete-camera/${cameraId}/`,
         headers
       );
       
@@ -138,7 +141,7 @@ function ShopliftingDetection() {
 
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/get-frame/${cameraId}/`, 
+        `${API_BASE_URL}/api/get-frame/${cameraId}/`, 
         headers
       );
       if (response.data.status === 'success' && response.data.frame) {
@@ -207,7 +210,7 @@ function ShopliftingDetection() {
 
       try {
         const response = await axios.get(
-          `http://localhost:8000/api/analysis-data/?time_filter=${timeFilter}`,
+          `${API_BASE_URL}/api/analysis-data/?time_filter=${timeFilter}`,
           headers
         );
         if (response.data.status === 'success') {

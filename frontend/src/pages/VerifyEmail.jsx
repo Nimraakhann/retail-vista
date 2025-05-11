@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { config } from '../config';
 
+const API_BASE_URL = config.API_BASE_URL;
 
 function VerifyEmail() {
   const [status, setStatus] = useState('verifying');
@@ -19,7 +21,7 @@ function VerifyEmail() {
 
     const verifyEmail = async () => {
       try {
-        const response = await axios.post('http://localhost:8000/api/verify-email/', { token });
+        const response = await axios.post(`${API_BASE_URL}/api/verify-email/`, { token });
         
         if (response.data.status === 'success') {
           setStatus('success');

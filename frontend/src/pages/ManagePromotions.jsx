@@ -3,6 +3,7 @@ import DashboardHeader from '../components/DashboardHeader';
 import Pagination from '../components/Pagination';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { config } from '../config';
 
 const customFileInputStyle = `
   .custom-file-input::file-selector-button {
@@ -20,6 +21,8 @@ const customFileInputStyle = `
     transform: scale(1.05);
   }
 `;
+
+const API_BASE_URL = config.API_BASE_URL;
 
 const ManagePromotions = () => {
   const [promotions, setPromotions] = useState([]);
@@ -45,7 +48,7 @@ const ManagePromotions = () => {
   const fetchPromotions = async () => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.get('http://localhost:8000/api/promotions/', {
+      const response = await axios.get(`${API_BASE_URL}/api/promotions/`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
@@ -85,13 +88,13 @@ const ManagePromotions = () => {
 
       if (showEditModal) {
         await axios.put(
-          `http://localhost:8000/api/promotions/${selectedPromotion.id}/`, 
+          `${API_BASE_URL}/api/promotions/${selectedPromotion.id}/`, 
           formDataToSend,
           config
         );
       } else {
         await axios.post(
-          'http://localhost:8000/api/promotions/',
+          `${API_BASE_URL}/api/promotions/`,
           formDataToSend,
           config
         );
@@ -111,7 +114,7 @@ const ManagePromotions = () => {
     if (window.confirm('Are you sure you want to delete this promotion?')) {
       try {
         const accessToken = localStorage.getItem('accessToken');
-        await axios.delete(`http://localhost:8000/api/promotions/${id}/`, {
+        await axios.delete(`${API_BASE_URL}/api/promotions/${id}/`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }

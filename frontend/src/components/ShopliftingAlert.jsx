@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { config } from '../config';
 
 // Global variable to track if any sound is playing
 let isSoundPlaying = false;
 let activeAudio = null;
 let userStoppedSound = false; // New flag to track if sound was deliberately stopped by user
 let isAppJustLoaded = true; // Track if app just loaded to prevent auto-alerts
+
+const API_BASE_URL = config.API_BASE_URL;
 
 function ShopliftingAlert() {
   const [isVisible, setIsVisible] = useState(false);
@@ -43,7 +46,7 @@ function ShopliftingAlert() {
       // Add a cache-busting parameter to prevent browser caching
       const cacheBuster = new Date().getTime();
       const response = await axios.get(
-        `http://localhost:8000/api/check-for-alerts/?t=${cacheBuster}`,
+        `${API_BASE_URL}/api/check-for-alerts/?t=${cacheBuster}`,
         headers
       );
       
@@ -67,7 +70,7 @@ function ShopliftingAlert() {
         if (latest_alert) {
           try {
             const cameraResponse = await axios.get(
-              `http://localhost:8000/api/check-camera-status/${latest_alert.camera_id}/`,
+              `${API_BASE_URL}/api/check-camera-status/${latest_alert.camera_id}/`,
               headers
             );
             
@@ -199,7 +202,7 @@ function ShopliftingAlert() {
       // Add a cache-buster to prevent caching issues
       const cacheBuster = Date.now();
       // Only set the source after setting up the event listeners
-      audio.src = `/alert-sound.mp3?v=${cacheBuster}`; 
+      audio.src = `${API_BASE_URL}/alert-sound.mp3?v=${cacheBuster}`; 
       audio.load();
       
       // Try to play
@@ -296,7 +299,7 @@ function ShopliftingAlert() {
       // Create an audio element using DOM
       const altAudio = document.createElement('audio');
       altAudio.id = 'alert-sound-element';
-      altAudio.src = `/alert-sound.mp3?v=${Date.now()}`;
+      altAudio.src = `${API_BASE_URL}/alert-sound.mp3?v=${Date.now()}`;
       altAudio.volume = 1.0;
       altAudio.loop = true; // Also make this loop
       

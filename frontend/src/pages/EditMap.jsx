@@ -6,7 +6,7 @@ function EditMap() {
   const navigate = useNavigate();
 
   const handleOpenEditor = () => {
-    window.open('https://app.mappedin.com/editor/', '_blank', 'noopener,noreferrer');
+    window.open(import.meta.env.VITE_MAPPEDIN_EDITOR_URL || 'https://app.mappedin.com/editor/', '_blank', 'noopener,noreferrer');
   };
 
   return (

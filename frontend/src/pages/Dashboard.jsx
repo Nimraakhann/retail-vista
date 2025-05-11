@@ -4,6 +4,9 @@ import axios from 'axios';
 import DashboardHeader from '../components/DashboardHeader';
 import AnimatedBackground from '../components/AnimatedBackground';
 import '../styles/animations.css';
+import { config } from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -36,7 +39,7 @@ function Dashboard() {
     // Fetch editor link and iframe code
     const fetchMapData = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/map/', {
+        const response = await axios.get(`${API_BASE_URL}/api/map/`, {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
         if (response.data?.editor_link) {

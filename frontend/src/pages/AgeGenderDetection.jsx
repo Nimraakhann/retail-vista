@@ -14,6 +14,7 @@ import {
   Legend
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
+import { config } from '../config';
 
 // Register ChartJS components
 ChartJS.register(
@@ -26,6 +27,8 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
+const API_BASE_URL = config.API_BASE_URL;
 
 function AnalysisView() {
   const [timeFilter, setTimeFilter] = useState('1h');
@@ -66,7 +69,7 @@ function AnalysisView() {
 
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/age-gender-analysis/?time_filter=${timeFilter}`,
+        `${API_BASE_URL}/api/age-gender-analysis/?time_filter=${timeFilter}`,
         headers
       );
       if (response.data.status === 'success') {
@@ -330,7 +333,7 @@ function AgeGenderDetection() {
 
       try {
         const response = await axios.get(
-          'http://localhost:8000/api/get-age-gender-cameras/', 
+          `${API_BASE_URL}/api/get-age-gender-cameras/`, 
           headers
         );
         if (response.data.status === 'success') {
@@ -357,7 +360,7 @@ function AgeGenderDetection() {
       const isWebcam = formData.videoPath.toLowerCase().trim() === 'webcam';
       
       const response = await axios.post(
-        'http://localhost:8000/api/connect-age-gender-camera/',
+        `${API_BASE_URL}/api/connect-age-gender-camera/`,
         {
           camera_id: cameraId,
           name: formData.name,  // Add this
@@ -374,7 +377,7 @@ function AgeGenderDetection() {
         setFormData({ name: '', videoPath: '' });  // Reset both fields
         
         const camerasResponse = await axios.get(
-          'http://localhost:8000/api/get-age-gender-cameras/',
+          `${API_BASE_URL}/api/get-age-gender-cameras/`,
           headers
         );
         
@@ -396,7 +399,7 @@ function AgeGenderDetection() {
 
     try {
       const response = await axios.delete(
-        `http://localhost:8000/api/delete-age-gender-camera/${cameraId}/`,
+        `${API_BASE_URL}/api/delete-age-gender-camera/${cameraId}/`,
         headers // Just send headers directly without spreading
       );
 
@@ -426,7 +429,7 @@ function AgeGenderDetection() {
   
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/get-age-gender-frame/${cameraId}/`,
+        `${API_BASE_URL}/api/get-age-gender-frame/${cameraId}/`,
         headers
       );
       

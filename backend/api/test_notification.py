@@ -6,6 +6,7 @@ import json
 import sys
 import os
 import time
+from ..config import API_ENDPOINTS
 
 def send_test_notification(camera_id, token=None):
     """Send a test notification to the shoplifting-in-progress endpoint"""
@@ -82,10 +83,10 @@ def send_test_notification(camera_id, token=None):
         headers['Authorization'] = f'Bearer {token}'
     
     # Send request
-    print("Sending request to http://localhost:8000/api/shoplifting-in-progress/")
+    print(f"Sending request to {API_ENDPOINTS['shoplifting_in_progress']}")
     try:
         response = requests.post(
-            'http://localhost:8000/api/shoplifting-in-progress/',
+            API_ENDPOINTS['shoplifting_in_progress'],
             json=data,
             headers=headers,
             timeout=10

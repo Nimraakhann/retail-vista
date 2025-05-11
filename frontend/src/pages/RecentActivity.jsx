@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../components/DashboardHeader';
 import axios from 'axios';
+import { config } from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 function RecentActivity() {
   const [alerts, setAlerts] = useState([]);
@@ -37,7 +40,7 @@ function RecentActivity() {
       // Add cache-busting parameter to prevent browser caching
       const timestamp = new Date().getTime();
       const response = await axios.get(
-        `http://localhost:8000/api/shoplifting-alerts/?t=${timestamp}`,
+        `${API_BASE_URL}/api/shoplifting-alerts/?t=${timestamp}`,
         headers
       );
       
@@ -112,7 +115,7 @@ function RecentActivity() {
     
     try {
       const response = await axios.post(
-        `http://localhost:8000/api/mark-alert-as-reviewed/${selectedAlert.id}/`,
+        `${API_BASE_URL}/api/mark-alert-as-reviewed/${selectedAlert.id}/`,
         {},
         headers
       );
@@ -293,7 +296,7 @@ function RecentActivity() {
                 <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-3">
                   <img 
                     className="absolute inset-0 w-full h-full object-cover" 
-                    src={alert.thumbnail || 'https://via.placeholder.com/640x360?text=No+Thumbnail'}
+                    src={alert.thumbnail || import.meta.env.VITE_PLACEHOLDER_IMAGE || '/placeholder.jpg'}
                     alt={`${alert.camera_name} alert`}
                   />
                   <button
