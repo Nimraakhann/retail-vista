@@ -318,6 +318,7 @@ function PeopleCounter() {
   const location = useLocation();
   const isAnalysisPage = location.pathname.includes('/analysis');
   const [isDeleting, setIsDeleting] = useState({});
+  const [deletingCameraIds, setDeletingCameraIds] = useState([]);
 
   const getAuthHeaders = () => {
     const accessToken = localStorage.getItem('accessToken');
@@ -390,40 +391,44 @@ function PeopleCounter() {
   };
 
   const handleDeleteCamera = async (cameraId) => {
-    if (isDeleting[cameraId]) return; // Prevent multiple delete attempts
+    if (isDeleting[cameraId] || deletingCameraIds.includes(cameraId)) return; // Prevent multiple delete attempts
     
+    setDeletingCameraIds(prev => [...prev, cameraId]);
     const headers = getAuthHeaders();
     if (!headers) return;
 
     try {
       setIsDeleting(prev => ({ ...prev, [cameraId]: true }));
-      console.log('Attempting to delete camera:', cameraId);
-      
       // Optimistically update UI
       setCameras(prev => prev.filter(cam => cam.id !== cameraId));
-      
-      const response = await axios.delete(
+      await axios.delete(
         `${API_BASE_URL}/api/delete-people-counter-camera/${cameraId}/`,
         headers
       );
-      
-      console.log('Delete response:', response.data);
-      
-      if (response.data.status !== 'success') {
-        // If delete failed, reload the camera
-        console.error('Delete failed:', response.data.message);
-        await loadCameras();
-      }
+      // Poll until camera is gone from backend
+      let pollCount = 0;
+      const poll = async () => {
+        pollCount++;
+        const response = await axios.get(`${API_BASE_URL}/api/get-people-counter-cameras/`, headers);
+        const stillThere = response.data.cameras.some(cam => cam.id === cameraId);
+        if (stillThere && pollCount < 20) {
+          setTimeout(poll, 500);
+        } else {
+          setDeletingCameraIds(prev => prev.filter(id => id !== cameraId));
+          setIsDeleting(prev => ({ ...prev, [cameraId]: false }));
+          loadCameras();
+        }
+      };
+      poll();
     } catch (error) {
+      setDeletingCameraIds(prev => prev.filter(id => id !== cameraId));
+      setIsDeleting(prev => ({ ...prev, [cameraId]: false }));
       console.error('Error deleting camera:', error);
       if (error.response?.status === 401) {
         localStorage.removeItem('accessToken');
         navigate('/login');
       }
-      // If there's an error, reload the camera
       await loadCameras();
-    } finally {
-      setIsDeleting(prev => ({ ...prev, [cameraId]: false }));
     }
   };
 
@@ -629,7 +634,13 @@ function PeopleCounter() {
           // Your existing camera view code
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cameras.map(camera => (
-              <div key={camera.id} className="bg-zinc-900 rounded-lg p-4">
+              <div key={camera.id} className="bg-zinc-900 rounded-lg p-4 relative">
+                {/* Spinner overlay while deleting */}
+                {deletingCameraIds.includes(camera.id) && (
+                  <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-10">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-white">
                     {camera.name || `Camera ${camera.id}`}  {/* Update this line */}
