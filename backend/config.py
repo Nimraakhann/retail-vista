@@ -1,8 +1,8 @@
 import os
 
 # API URLs
-API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8000')
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+API_BASE_URL = os.getenv('API_BASE_URL', 'https://retailvista.duckdns.org')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://retailvista.netlify.app')
 
 # API Endpoints
 API_ENDPOINTS = {
